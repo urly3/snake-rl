@@ -22,14 +22,19 @@ while (!Raylib.WindowShouldClose())
     render();
 }
 
+foreach (var texture in Block.Textures)
+{
+    Raylib.UnloadTexture(texture);
+}
+
 ///////////
 
 void input()
 {
-    if (Raylib.IsKeyPressed(KeyboardKey.Up)) snake.ChangeDirection(Direction.Up);
-    else if (Raylib.IsKeyPressed(KeyboardKey.Down)) snake.ChangeDirection(Direction.Down);
-    else if (Raylib.IsKeyPressed(KeyboardKey.Left)) snake.ChangeDirection(Direction.Left);
-    else if (Raylib.IsKeyPressed(KeyboardKey.Right)) snake.ChangeDirection(Direction.Right);
+    if (Raylib.IsKeyPressed(KeyboardKey.Up) || Raylib.IsKeyPressed(KeyboardKey.W)) snake.ChangeDirection(Direction.Up);
+    else if (Raylib.IsKeyPressed(KeyboardKey.Down) || Raylib.IsKeyPressed(KeyboardKey.S)) snake.ChangeDirection(Direction.Down);
+    else if (Raylib.IsKeyPressed(KeyboardKey.Left) || Raylib.IsKeyPressed(KeyboardKey.A)) snake.ChangeDirection(Direction.Left);
+    else if (Raylib.IsKeyPressed(KeyboardKey.Right) || Raylib.IsKeyPressed(KeyboardKey.D)) snake.ChangeDirection(Direction.Right);
     else if (Raylib.IsKeyPressed(KeyboardKey.P)) paused = !paused;
 }
 
