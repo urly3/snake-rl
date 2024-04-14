@@ -1,15 +1,19 @@
 ﻿using Raylib_cs;
 
-int fps = 24;
+int windowWidth = 1000;
+int windowHeight = 1000;
+int fps = 10;
 double lastFrame = 0;
 double deltaTime = 0;
 double spf = 1.0f / fps;
 bool paused = false;
+int frame = 0;
+
+Raylib.InitWindow(windowWidth, windowHeight, "snake-rl");
 
 Snake snake = new();
-Grid grid = new(snake);
+Grid grid = new(snake, windowWidth, windowHeight);
 
-Raylib.InitWindow(500, 500, "snake-rl");
 
 while (!Raylib.WindowShouldClose())
 {
@@ -26,7 +30,7 @@ void input()
     else if (Raylib.IsKeyPressed(KeyboardKey.Down)) snake.ChangeDirection(Direction.Down);
     else if (Raylib.IsKeyPressed(KeyboardKey.Left)) snake.ChangeDirection(Direction.Left);
     else if (Raylib.IsKeyPressed(KeyboardKey.Right)) snake.ChangeDirection(Direction.Right);
-    else if (Raylib.IsKeyPressed(KeyboardKey.P)) paused =! paused;
+    else if (Raylib.IsKeyPressed(KeyboardKey.P)) paused = !paused;
 }
 
 void update()
@@ -35,6 +39,7 @@ void update()
     if (deltaTime < spf)
     {
         Raylib.WaitTime(spf - deltaTime);
+        return;
     }
 
     lastFrame = Raylib.GetTime();
@@ -49,8 +54,18 @@ void update()
         return;
     }
 
+    ++frame;
+
+    if (frame > 10)
+    {
+        snake.Grow();
+        frame = 0;
+    }
+
     snake.UpdatePosition();
     grid.UpdateTiles();
+
+    return;
 }
 
 void render()
@@ -60,13 +75,17 @@ void render()
     if (!snake.Alive)
     {
 
-        return;
     }
 
     if (paused)
     {
-        
-        return;
+
+    }
+
+    foreach (var tile in Grid.Tiles)
+    {
+        Raylib.DrawTexture(Block.Textures[(int)tile.Type], tile.Position.X * (windowWidth / Grid.Width),
+            tile.Position.Y * (windowHeight / Grid.Height), Color.White);
     }
 
     Raylib.EndDrawing();
@@ -76,6 +95,7 @@ void render()
 
 enum Direction
 {
+    Still,
     Up,
     Down,
     Left,
@@ -85,18 +105,47 @@ enum Direction
 enum BlockType
 {
     Empty,
-    Head,
     Body,
+    Head,
 }
 
 class Block
 {
-    public BlockType Type { get; set; } = BlockType.Empty;
+    public BlockType Type { get; set; }
     public Vec2d Position { get; set; } = new();
+    public static Texture2D[] Textures { get; set; } = GenerateTextures(Raylib.GetScreenWidth(),
+                                                                        Raylib.GetScreenHeight());
+
+    public Block()
+    {
+        Type = BlockType.Empty;
+    }
 
     public Block(BlockType type)
     {
         Type = type;
+    }
+
+    static Texture2D[] GenerateTextures(int windowWidth, int windowHeight)
+    {
+        Texture2D[] textures = new Texture2D[3];
+
+        int tileWidth = windowWidth / Grid.Width;
+        int tileHeight = windowHeight / Grid.Height;
+
+        Image empty = Raylib.GenImageColor(tileWidth, tileHeight, Color.Gray);
+        Image body = Raylib.GenImageColor(tileWidth, tileHeight, Color.DarkGray);
+        Image head = Raylib.GenImageColor(tileWidth, tileHeight, Color.RayWhite);
+
+        textures[0] = Raylib.LoadTextureFromImage(empty);
+        textures[1] = Raylib.LoadTextureFromImage(body);
+        textures[2] = Raylib.LoadTextureFromImage(head);
+
+        Raylib.UnloadImage(empty);
+        Raylib.UnloadImage(body);
+        Raylib.UnloadImage(head);
+
+        return textures;
     }
 }
 
@@ -109,9 +158,9 @@ class Vec2d
 class Snake
 {
     public List<Block> Blocks { get; set; } = new();
-    Direction Direction { get; set; }
+    public Direction Direction { get; set; }
     public Block Head { get; set; } = new(BlockType.Head);
-    public bool Alive { get; set; } = false;
+    public bool Alive { get; set; } = true;
 
     public Snake()
     {
@@ -137,7 +186,7 @@ class Snake
         switch (Direction)
         {
             case Direction.Up:
-                if (Head.Position.Y == 0)
+                if (Head.Position.Y == 0 || Grid.Tiles[((Head.Position.Y - 1) * Grid.Width) + Head.Position.X].Type == BlockType.Body)
                 {
                     Alive = false;
                     return;
@@ -153,7 +202,7 @@ class Snake
                 return;
 
             case Direction.Down:
-                if (Head.Position.Y + 1 == Grid.Height)
+                if (Head.Position.Y + 1 == Grid.Height || Grid.Tiles[((Head.Position.Y + 1) * Grid.Width) + Head.Position.X].Type == BlockType.Body)
                 {
                     Alive = false;
                     return;
@@ -169,7 +218,7 @@ class Snake
                 return;
 
             case Direction.Left:
-                if (Head.Position.X == 0)
+                if (Head.Position.X == 0 || Grid.Tiles[(Head.Position.Y * Grid.Width) + Head.Position.X - 1].Type == BlockType.Body)
                 {
                     Alive = false;
                     return;
@@ -185,7 +234,7 @@ class Snake
                 return;
 
             case Direction.Right:
-                if (Head.Position.X + 1 == Grid.Width)
+                if (Head.Position.X + 1 == Grid.Width || Grid.Tiles[(Head.Position.Y * Grid.Width) + Head.Position.X + 1].Type == BlockType.Body)
                 {
                     Alive = false;
                     return;
@@ -201,18 +250,32 @@ class Snake
                 return;
         }
     }
+
+    public void Grow()
+    {
+        var block = new Block(BlockType.Body);
+        block.Position.X = Head.Position.X;
+        block.Position.Y = Head.Position.Y;
+        Blocks.Add(block);
+    }
 }
 
 
 class Grid
 {
-    public static int Width { get; set; }
-    public static int Height { get; set; }
-    public Block[] Tiles { get; set; } = new Block[Width * Height];
+    public static int Width { get; set; } = 10;
+    public static int Height { get; set; } = 10;
+    public static Block[] Tiles { get; set; } = new Block[Width * Height];
     private Snake snake { get; set; }
 
-    public Grid(Snake s)
+    public Grid(Snake s, int windowWidth, int windowHeight)
     {
+        for (int i = 0; i < Tiles.Count(); ++i)
+        {
+            Tiles[i] = new();
+            Tiles[i].Position.X = i % Width;
+            Tiles[i].Position.Y = (int)Math.Floor((float)i / Height);
+        }
         snake = s;
     }
 
@@ -223,7 +286,7 @@ class Grid
             tile.Type = BlockType.Empty;
         }
 
-        for (int i = 0; i < snake.Blocks.Count; ++i)
+        for (int i = snake.Blocks.Count - 1; i >= 0; --i)
         {
             Block block = snake.Blocks[i];
             Tiles[(block.Position.Y * Width) + block.Position.X].Type = block.Type;
