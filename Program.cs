@@ -2,10 +2,12 @@
 
 int windowWidth = 400;
 int windowHeight = 400;
-int fps = 10;
-double lastFrame = 0;
+int fps = 60;
+double lastUpdateFrame = 0;
 double deltaTime = 0;
 double spf = 1.0f / fps;
+int fpu = 10;
+double spu = 1.0f / fpu;
 bool paused = false;
 bool won = false;
 int frame = 0;
@@ -41,14 +43,18 @@ void input()
 
 void update()
 {
-    deltaTime = Raylib.GetTime() - lastFrame;
-    if (deltaTime < spf)
+    deltaTime = Raylib.GetTime() - lastUpdateFrame;
+
+    if (deltaTime < spu)
     {
-        Raylib.WaitTime(spf - deltaTime);
+        Raylib.WaitTime(spf);
+
         return;
     }
 
-    lastFrame = Raylib.GetTime();
+    ++frame;
+
+    lastUpdateFrame = Raylib.GetTime();
 
     if (snake.Size == Grid.Width * Grid.Height)
     {
@@ -71,9 +77,7 @@ void update()
         return;
     }
 
-    ++frame;
-
-    if (!grid.SpawnApple && frame > 20)
+    if (!grid.SpawnApple && frame > (1.0f / spu) * 2)
     {
         grid.GenerateApple(snake);
         grid.SpawnApple = true;
@@ -261,7 +265,7 @@ class Snake
                 return;
 
             case Direction.Left:
-                if (Head.Position.X == 0 || Grid.Tiles[(Head.Position.Y * Grid.Width) + Head.Position.X - 1].Type == BlockType.Body)
+                if (Head.Position.X == 0 || Grid.Tiles[(Head.Position.Y * Grid.Width) + (Head.Position.X - 1)].Type == BlockType.Body)
                 {
                     Alive = false;
                     return;
@@ -284,7 +288,7 @@ class Snake
                 return;
 
             case Direction.Right:
-                if (Head.Position.X + 1 == Grid.Width || Grid.Tiles[(Head.Position.Y * Grid.Width) + Head.Position.X + 1].Type == BlockType.Body)
+                if (Head.Position.X + 1 == Grid.Width || Grid.Tiles[(Head.Position.Y * Grid.Width) + (Head.Position.X + 1)].Type == BlockType.Body)
                 {
                     Alive = false;
                     return;
