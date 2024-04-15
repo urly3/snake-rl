@@ -227,7 +227,7 @@ class Snake
                     Blocks[i].Position.Y = Blocks[i - 1].Position.Y;
                 }
 
-                if (Head.Position.Y == grid.Apple.Position.Y && Head.Position.X == grid.Apple.Position.X)
+                if (Head.Position.Y - 1 == grid.Apple.Position.Y && Head.Position.X == grid.Apple.Position.X)
                 {
                     Grow();
                     grid.GenerateApple(this);
@@ -250,7 +250,7 @@ class Snake
                     Blocks[i].Position.Y = Blocks[i - 1].Position.Y;
                 }
 
-                if (Head.Position.Y == grid.Apple.Position.Y && Head.Position.X == grid.Apple.Position.X)
+                if (Head.Position.Y + 1 == grid.Apple.Position.Y && Head.Position.X == grid.Apple.Position.X)
                 {
                     Grow();
                     grid.GenerateApple(this);
@@ -273,7 +273,7 @@ class Snake
                     Blocks[i].Position.Y = Blocks[i - 1].Position.Y;
                 }
 
-                if (Head.Position.X == grid.Apple.Position.X && Head.Position.Y == grid.Apple.Position.Y)
+                if (Head.Position.X - 1 == grid.Apple.Position.X && Head.Position.Y == grid.Apple.Position.Y)
                 {
                     Grow();
                     grid.GenerateApple(this);
