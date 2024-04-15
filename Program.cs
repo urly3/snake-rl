@@ -1,12 +1,13 @@
 ﻿using Raylib_cs;
 
-int windowWidth = 1000;
-int windowHeight = 1000;
+int windowWidth = 400;
+int windowHeight = 400;
 int fps = 10;
 double lastFrame = 0;
 double deltaTime = 0;
 double spf = 1.0f / fps;
 bool paused = false;
+bool won = false;
 int frame = 0;
 
 Raylib.InitWindow(windowWidth, windowHeight, "snake-rl");
@@ -49,6 +50,12 @@ void update()
 
     lastFrame = Raylib.GetTime();
 
+    if (snake.Size == Grid.Width * Grid.Height)
+    {
+        won = true;
+    }
+
+
     if (!snake.Alive)
     {
         return;
@@ -59,15 +66,20 @@ void update()
         return;
     }
 
-    ++frame;
-
-    if (frame > 10)
+    if (won)
     {
-        snake.Grow();
-        frame = 0;
+        return;
     }
 
-    snake.UpdatePosition();
+    ++frame;
+
+    if (!grid.SpawnApple && frame > 20)
+    {
+        grid.GenerateApple(snake);
+        grid.SpawnApple = true;
+    }
+
+    snake.UpdatePosition(grid);
     grid.UpdateTiles();
 
     return;
@@ -87,11 +99,18 @@ void render()
 
     }
 
+    if (won)
+    {
+
+    }
+
     foreach (var tile in Grid.Tiles)
     {
         Raylib.DrawTexture(Block.Textures[(int)tile.Type], tile.Position.X * (windowWidth / Grid.Width),
             tile.Position.Y * (windowHeight / Grid.Height), Color.White);
     }
+
+    Raylib.DrawText("size: " + snake.Size.ToString(), 10, 10, 21, Color.Black);
 
     Raylib.EndDrawing();
 }
@@ -112,6 +131,7 @@ enum BlockType
     Empty,
     Body,
     Head,
+    Fruit,
 }
 
 class Block
@@ -133,7 +153,7 @@ class Block
 
     static Texture2D[] GenerateTextures(int windowWidth, int windowHeight)
     {
-        Texture2D[] textures = new Texture2D[3];
+        Texture2D[] textures = new Texture2D[4];
 
         int tileWidth = windowWidth / Grid.Width;
         int tileHeight = windowHeight / Grid.Height;
@@ -141,14 +161,17 @@ class Block
         Image empty = Raylib.GenImageColor(tileWidth, tileHeight, Color.Gray);
         Image body = Raylib.GenImageColor(tileWidth, tileHeight, Color.DarkGray);
         Image head = Raylib.GenImageColor(tileWidth, tileHeight, Color.RayWhite);
+        Image fruit = Raylib.GenImageColor(tileWidth, tileHeight, Color.Red);
 
         textures[0] = Raylib.LoadTextureFromImage(empty);
         textures[1] = Raylib.LoadTextureFromImage(body);
         textures[2] = Raylib.LoadTextureFromImage(head);
+        textures[3] = Raylib.LoadTextureFromImage(fruit);
 
         Raylib.UnloadImage(empty);
         Raylib.UnloadImage(body);
         Raylib.UnloadImage(head);
+        Raylib.UnloadImage(fruit);
 
         return textures;
     }
@@ -166,6 +189,7 @@ class Snake
     public Direction Direction { get; set; }
     public Block Head { get; set; } = new(BlockType.Head);
     public bool Alive { get; set; } = true;
+    public int Size { get; set; } = 1;
 
     public Snake()
     {
@@ -186,7 +210,7 @@ class Snake
         };
     }
 
-    public void UpdatePosition()
+    public void UpdatePosition(Grid grid)
     {
         switch (Direction)
         {
@@ -203,7 +227,14 @@ class Snake
                     Blocks[i].Position.Y = Blocks[i - 1].Position.Y;
                 }
 
+                if (Head.Position.Y == grid.Apple.Position.Y && Head.Position.X == grid.Apple.Position.X)
+                {
+                    Grow();
+                    grid.GenerateApple(this);
+                }
+
                 Head.Position.Y -= 1;
+
                 return;
 
             case Direction.Down:
@@ -219,7 +250,14 @@ class Snake
                     Blocks[i].Position.Y = Blocks[i - 1].Position.Y;
                 }
 
+                if (Head.Position.Y == grid.Apple.Position.Y && Head.Position.X == grid.Apple.Position.X)
+                {
+                    Grow();
+                    grid.GenerateApple(this);
+                }
+
                 Head.Position.Y += 1;
+
                 return;
 
             case Direction.Left:
@@ -235,7 +273,14 @@ class Snake
                     Blocks[i].Position.Y = Blocks[i - 1].Position.Y;
                 }
 
+                if (Head.Position.X == grid.Apple.Position.X && Head.Position.Y == grid.Apple.Position.Y)
+                {
+                    Grow();
+                    grid.GenerateApple(this);
+                }
+
                 Head.Position.X -= 1;
+
                 return;
 
             case Direction.Right:
@@ -251,7 +296,14 @@ class Snake
                     Blocks[i].Position.Y = Blocks[i - 1].Position.Y;
                 }
 
+                if (Head.Position.X + 1 == grid.Apple.Position.X && Head.Position.Y == grid.Apple.Position.Y)
+                {
+                    Grow();
+                    grid.GenerateApple(this);
+                }
+
                 Head.Position.X += 1;
+
                 return;
         }
     }
@@ -262,6 +314,7 @@ class Snake
         block.Position.X = Head.Position.X;
         block.Position.Y = Head.Position.Y;
         Blocks.Add(block);
+        ++Size;
     }
 }
 
@@ -272,6 +325,8 @@ class Grid
     public static int Height { get; set; } = 10;
     public static Block[] Tiles { get; set; } = new Block[Width * Height];
     private Snake snake { get; set; }
+    public Block Apple { get; set; } = new();
+    public bool SpawnApple { get; set; } = false;
 
     public Grid(Snake s, int windowWidth, int windowHeight)
     {
@@ -281,6 +336,9 @@ class Grid
             Tiles[i].Position.X = i % Width;
             Tiles[i].Position.Y = (int)Math.Floor((float)i / Height);
         }
+
+        Apple.Type = BlockType.Fruit;
+
         snake = s;
     }
 
@@ -295,6 +353,42 @@ class Grid
         {
             Block block = snake.Blocks[i];
             Tiles[(block.Position.Y * Width) + block.Position.X].Type = block.Type;
+        }
+
+        if (SpawnApple)
+        {
+            Tiles[(Apple.Position.Y * Width) + Apple.Position.X].Type = Apple.Type;
+        }
+    }
+
+    public void GenerateApple(Snake snake)
+    {
+        while (true)
+        {
+            var random = new Random();
+            int randX = random.Next(Width);
+            int randY = random.Next(Height);
+
+            bool unique = true;
+
+            foreach (var block in snake.Blocks)
+            {
+                if (block.Position.X == randX && block.Position.Y == randY)
+                {
+                    unique = false;
+                    break;
+                }
+            }
+
+            if (!unique)
+            {
+                continue;
+            }
+
+            Apple.Position.X = randX;
+            Apple.Position.Y = randY;
+
+            break;
         }
     }
 }
