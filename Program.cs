@@ -1,7 +1,7 @@
 ﻿using Raylib_cs;
 
-int windowWidth = 400;
-int windowHeight = 400;
+int windowWidth = 500;
+int windowHeight = 500;
 int fps = 60;
 double lastUpdateFrame = 0;
 double deltaTime = 0;
@@ -339,7 +339,7 @@ class Snake
         block.Position.X = Head.Position.X;
         block.Position.Y = Head.Position.Y;
         Blocks.Add(block);
-        ++Size;
+        Size = Blocks.Count();
     }
 
     public void Reset()
@@ -348,6 +348,7 @@ class Snake
         Head.Position.Y = Grid.Height / 2;
         Head.Position.X = Grid.Width / 2;
         Blocks.Add(Head);
+        Size = Blocks.Count();
         Alive = true;
     }
 }
@@ -355,8 +356,8 @@ class Snake
 
 class Grid
 {
-    public static int Width { get; set; } = 10;
-    public static int Height { get; set; } = 10;
+    public static int Width { get; set; } = 12;
+    public static int Height { get; set; } = 12;
     public static Block[] Tiles { get; set; } = new Block[Width * Height];
     public Snake Snake { get; set; } = new();
     public Block Apple { get; set; } = new(BlockType.Fruit);
@@ -395,11 +396,15 @@ class Grid
     {
         bool unique = true;
         var random = new Random();
-        int randX = random.Next(Width);
-        int randY = random.Next(Height);
+
+        int randX;
+        int randY;
 
         do
         {
+            randX = random.Next(Width);
+            randY = random.Next(Height);
+            unique = true;
             foreach (var block in Snake.Blocks)
             {
                 if (block.Position.X == randX && block.Position.Y == randY)
@@ -408,7 +413,6 @@ class Grid
                     break;
                 }
             }
-            break;
         }
         while (!unique);
 
