@@ -11,6 +11,7 @@ double spu = 1.0f / fpu;
 bool paused = false;
 bool won = false;
 int frame = 0;
+Direction direction = Direction.Still;
 
 Raylib.InitWindow(windowWidth, windowHeight, "snake-rl");
 
@@ -34,10 +35,11 @@ foreach (var texture in Block.Textures)
 
 void input()
 {
-    if (Raylib.IsKeyPressed(KeyboardKey.Up) || Raylib.IsKeyPressed(KeyboardKey.W)) snake.ChangeDirection(Direction.Up);
-    else if (Raylib.IsKeyPressed(KeyboardKey.Down) || Raylib.IsKeyPressed(KeyboardKey.S)) snake.ChangeDirection(Direction.Down);
-    else if (Raylib.IsKeyPressed(KeyboardKey.Left) || Raylib.IsKeyPressed(KeyboardKey.A)) snake.ChangeDirection(Direction.Left);
-    else if (Raylib.IsKeyPressed(KeyboardKey.Right) || Raylib.IsKeyPressed(KeyboardKey.D)) snake.ChangeDirection(Direction.Right);
+    if (!snake.Alive) return;
+    if (Raylib.IsKeyPressed(KeyboardKey.Up) || Raylib.IsKeyPressed(KeyboardKey.W)) direction = Direction.Up;
+    else if (Raylib.IsKeyPressed(KeyboardKey.Down) || Raylib.IsKeyPressed(KeyboardKey.S)) direction = Direction.Down;
+    else if (Raylib.IsKeyPressed(KeyboardKey.Left) || Raylib.IsKeyPressed(KeyboardKey.A)) direction = Direction.Left;
+    else if (Raylib.IsKeyPressed(KeyboardKey.Right) || Raylib.IsKeyPressed(KeyboardKey.D)) direction = Direction.Right;
     else if (Raylib.IsKeyPressed(KeyboardKey.P)) paused = !paused;
 }
 
@@ -83,6 +85,7 @@ void update()
         grid.SpawnApple = true;
     }
 
+    snake.ChangeDirection(direction);
     snake.UpdatePosition(grid);
     grid.UpdateTiles();
 
