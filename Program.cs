@@ -10,13 +10,13 @@ int fpu = 10;
 double spu = 1.0f / fpu;
 bool paused = false;
 bool won = false;
+bool goAgane = false;
 int frame = 0;
 Direction direction = Direction.Still;
 
 Raylib.InitWindow(windowWidth, windowHeight, "snake-rl");
 
-Snake snake = new();
-Grid grid = new(snake, windowWidth, windowHeight);
+Grid grid = new();
 
 
 while (!Raylib.WindowShouldClose())
@@ -35,7 +35,14 @@ foreach (var texture in Block.Textures)
 
 void input()
 {
-    if (!snake.Alive) return;
+    if (!grid.Snake.Alive)
+    {
+        if (Raylib.IsKeyPressed(KeyboardKey.R)) goAgane = true;
+        direction = Direction.Still;
+        grid.SpawnApple = false;
+        frame = 0;
+        return;
+    }
     if (Raylib.IsKeyPressed(KeyboardKey.Up) || Raylib.IsKeyPressed(KeyboardKey.W)) direction = Direction.Up;
     else if (Raylib.IsKeyPressed(KeyboardKey.Down) || Raylib.IsKeyPressed(KeyboardKey.S)) direction = Direction.Down;
     else if (Raylib.IsKeyPressed(KeyboardKey.Left) || Raylib.IsKeyPressed(KeyboardKey.A)) direction = Direction.Left;
@@ -56,15 +63,27 @@ void update()
 
     ++frame;
 
+    Console.WriteLine((int)Math.Round(1 / Raylib.GetFrameTime()));
+    Console.WriteLine(grid.Snake.Direction);
+
     lastUpdateFrame = Raylib.GetTime();
 
-    if (snake.Size == Grid.Width * Grid.Height)
+    if (goAgane)
+    {
+        grid.Reset();
+        goAgane = false;
+        return;
+    }
+
+
+
+    if (grid.Snake.Size == Grid.Width * Grid.Height)
     {
         won = true;
     }
 
 
-    if (!snake.Alive)
+    if (!grid.Snake.Alive)
     {
         return;
     }
@@ -81,12 +100,12 @@ void update()
 
     if (!grid.SpawnApple && frame > (1.0f / spu) * 2)
     {
-        grid.GenerateApple(snake);
+        grid.GenerateApple();
         grid.SpawnApple = true;
     }
 
-    snake.ChangeDirection(direction);
-    snake.UpdatePosition(grid);
+    grid.Snake.ChangeDirection(direction);
+    grid.Snake.UpdatePosition(grid);
     grid.UpdateTiles();
 
     return;
@@ -96,7 +115,7 @@ void render()
 {
     Raylib.BeginDrawing();
 
-    if (!snake.Alive)
+    if (!grid.Snake.Alive)
     {
 
     }
@@ -117,7 +136,7 @@ void render()
             tile.Position.Y * (windowHeight / Grid.Height), Color.White);
     }
 
-    Raylib.DrawText("size: " + snake.Size.ToString(), 10, 10, 21, Color.Black);
+    Raylib.DrawText("size: " + grid.Snake.Size.ToString(), 10, 10, 21, Color.Black);
 
     Raylib.EndDrawing();
 }
@@ -193,22 +212,21 @@ class Vec2d
 class Snake
 {
     public List<Block> Blocks { get; set; } = new();
-    public Direction Direction { get; set; }
+    public Direction Direction { get; set; } = Direction.Still;
     public Block Head { get; set; } = new(BlockType.Head);
     public bool Alive { get; set; } = true;
     public int Size { get; set; } = 1;
 
     public Snake()
     {
-        Head.Position.Y = Grid.Height / 2;
-        Head.Position.X = Grid.Width / 2;
-        Blocks.Add(Head);
+        Reset();
     }
 
     public void ChangeDirection(Direction direction)
     {
         Direction = direction switch
         {
+            Direction.Still => Direction.Still,
             Direction.Up => Direction == Direction.Down ? Direction.Down : Direction.Up,
             Direction.Down => Direction == Direction.Up ? Direction.Up : Direction.Down,
             Direction.Left => Direction == Direction.Right ? Direction.Right : Direction.Left,
@@ -237,7 +255,7 @@ class Snake
                 if (Head.Position.Y - 1 == grid.Apple.Position.Y && Head.Position.X == grid.Apple.Position.X)
                 {
                     Grow();
-                    grid.GenerateApple(this);
+                    grid.GenerateApple();
                 }
 
                 Head.Position.Y -= 1;
@@ -260,7 +278,7 @@ class Snake
                 if (Head.Position.Y + 1 == grid.Apple.Position.Y && Head.Position.X == grid.Apple.Position.X)
                 {
                     Grow();
-                    grid.GenerateApple(this);
+                    grid.GenerateApple();
                 }
 
                 Head.Position.Y += 1;
@@ -283,7 +301,7 @@ class Snake
                 if (Head.Position.X - 1 == grid.Apple.Position.X && Head.Position.Y == grid.Apple.Position.Y)
                 {
                     Grow();
-                    grid.GenerateApple(this);
+                    grid.GenerateApple();
                 }
 
                 Head.Position.X -= 1;
@@ -306,7 +324,7 @@ class Snake
                 if (Head.Position.X + 1 == grid.Apple.Position.X && Head.Position.Y == grid.Apple.Position.Y)
                 {
                     Grow();
-                    grid.GenerateApple(this);
+                    grid.GenerateApple();
                 }
 
                 Head.Position.X += 1;
@@ -323,6 +341,15 @@ class Snake
         Blocks.Add(block);
         ++Size;
     }
+
+    public void Reset()
+    {
+        Blocks.Clear();
+        Head.Position.Y = Grid.Height / 2;
+        Head.Position.X = Grid.Width / 2;
+        Blocks.Add(Head);
+        Alive = true;
+    }
 }
 
 
@@ -331,11 +358,11 @@ class Grid
     public static int Width { get; set; } = 10;
     public static int Height { get; set; } = 10;
     public static Block[] Tiles { get; set; } = new Block[Width * Height];
-    private Snake snake { get; set; }
-    public Block Apple { get; set; } = new();
+    public Snake Snake { get; set; } = new();
+    public Block Apple { get; set; } = new(BlockType.Fruit);
     public bool SpawnApple { get; set; } = false;
 
-    public Grid(Snake s, int windowWidth, int windowHeight)
+    public Grid()
     {
         for (int i = 0; i < Tiles.Count(); ++i)
         {
@@ -343,10 +370,6 @@ class Grid
             Tiles[i].Position.X = i % Width;
             Tiles[i].Position.Y = (int)Math.Floor((float)i / Height);
         }
-
-        Apple.Type = BlockType.Fruit;
-
-        snake = s;
     }
 
     public void UpdateTiles()
@@ -356,9 +379,9 @@ class Grid
             tile.Type = BlockType.Empty;
         }
 
-        for (int i = snake.Blocks.Count - 1; i >= 0; --i)
+        for (int i = Snake.Blocks.Count - 1; i >= 0; --i)
         {
-            Block block = snake.Blocks[i];
+            Block block = Snake.Blocks[i];
             Tiles[(block.Position.Y * Width) + block.Position.X].Type = block.Type;
         }
 
@@ -368,17 +391,16 @@ class Grid
         }
     }
 
-    public void GenerateApple(Snake snake)
+    public void GenerateApple()
     {
-        while (true)
+        bool unique = true;
+        var random = new Random();
+        int randX = random.Next(Width);
+        int randY = random.Next(Height);
+
+        do
         {
-            var random = new Random();
-            int randX = random.Next(Width);
-            int randY = random.Next(Height);
-
-            bool unique = true;
-
-            foreach (var block in snake.Blocks)
+            foreach (var block in Snake.Blocks)
             {
                 if (block.Position.X == randX && block.Position.Y == randY)
                 {
@@ -386,16 +408,22 @@ class Grid
                     break;
                 }
             }
-
-            if (!unique)
-            {
-                continue;
-            }
-
-            Apple.Position.X = randX;
-            Apple.Position.Y = randY;
-
             break;
         }
+        while (!unique);
+
+        Apple.Position.X = randX;
+        Apple.Position.Y = randY;
+
+    }
+
+    public void Reset()
+    {
+        for (int i = 0; i < Tiles.Count(); ++i)
+        {
+            Tiles[i].Type = BlockType.Empty;
+        }
+
+        Snake.Reset();
     }
 }
