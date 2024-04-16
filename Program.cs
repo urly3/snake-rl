@@ -63,9 +63,6 @@ void update()
 
     ++frame;
 
-    Console.WriteLine((int)Math.Round(1 / Raylib.GetFrameTime()));
-    Console.WriteLine(grid.Snake.Direction);
-
     lastUpdateFrame = Raylib.GetTime();
 
     if (goAgane)
