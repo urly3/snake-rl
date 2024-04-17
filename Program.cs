@@ -112,11 +112,6 @@ void render()
 {
     Raylib.BeginDrawing();
 
-    if (!grid.Snake.Alive)
-    {
-
-    }
-
     if (paused)
     {
 
@@ -133,7 +128,12 @@ void render()
             tile.Position.Y * (windowHeight / Grid.Height), Color.White);
     }
 
-    Raylib.DrawText("size: " + grid.Snake.Size.ToString(), 10, 10, 21, Color.Black);
+    if (!grid.Snake.Alive)
+    {
+        Raylib.DrawText("you died. press 'r' to restart.", 12, windowHeight / 2, 30, Color.Black);
+    }
+
+    Raylib.DrawText(grid.Snake.Size.ToString(), 10, 10, 21, Color.Black);
 
     Raylib.EndDrawing();
 }
