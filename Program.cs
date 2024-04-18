@@ -353,8 +353,8 @@ class Snake
 
 class Grid
 {
-    public static int Width { get; set; } = 12;
-    public static int Height { get; set; } = 12;
+    public static int Width { get; set; } = 10;
+    public static int Height { get; set; } = 10;
     public static Block[] Tiles { get; set; } = new Block[Width * Height];
     public Snake Snake { get; set; } = new();
     public Block Apple { get; set; } = new(BlockType.Fruit);
