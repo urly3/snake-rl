@@ -1,4 +1,36 @@
 ﻿using Raylib_cs;
+using System.Data.SQLite;
+using RepoDb;
+
+GlobalConfiguration
+    .Setup()
+    .UseSQLite();
+
+var connection = new SQLiteConnection("Data Source=scores.db");
+var sql = "insert into scores(score, username) values(@score, @username)";
+var sqlCreateTable = "CREATE TABLE scores (id integer primary key autoincrement, "
+    + "score integer not null, "
+    + "timestamp real not null default CURRENT_TIMESTAMP, "
+    + "username text not null);";
+
+try
+{
+    File.Open("scores.db", FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+}
+catch
+{
+    SQLiteConnection.CreateFile("scores.db");
+    connection.ExecuteNonQuery(sqlCreateTable);
+}
+
+Console.Write("enter a username: ");
+
+var username = Console.ReadLine();
+if (username == null)
+{
+    Environment.Exit(1);
+}
+
 
 int windowWidth = 500;
 int windowHeight = 500;
@@ -12,6 +44,8 @@ bool paused = false;
 bool won = false;
 bool goAgane = false;
 int frame = 0;
+bool scoreSaved = false;
+
 Direction direction = Direction.Still;
 
 Raylib.InitWindow(windowWidth, windowHeight, "snake-rl");
@@ -69,6 +103,7 @@ void update()
     {
         grid.Reset();
         goAgane = false;
+        scoreSaved = false;
         return;
     }
 
@@ -82,6 +117,11 @@ void update()
 
     if (!grid.Snake.Alive)
     {
+        if (!scoreSaved)
+        {
+            _ = connection.ExecuteNonQuery(sql, new { score = grid.Snake.Size, username = username });
+            scoreSaved = true;
+        }
         return;
     }
 
@@ -130,10 +170,17 @@ void render()
 
     if (!grid.Snake.Alive)
     {
-        Raylib.DrawText("you died. press 'r' to restart.", 12, windowHeight / 2, 30, Color.Black);
+        Raylib.DrawText("you died. press 'r' to restart.", 14, 10, 30, Color.Black);
+        int y = 30;
+        // TODO: show top 5 or so scores.
+        // proabably easiest with a datareader unless can be bothered to make the class.
+        // i guess that would actually be easier but alas.
+        // lazzyyyyyy
+    }
+    else {
+        Raylib.DrawText(grid.Snake.Size.ToString(), 10, 10, 21, Color.Black);
     }
 
-    Raylib.DrawText(grid.Snake.Size.ToString(), 10, 10, 21, Color.Black);
 
     Raylib.EndDrawing();
 }
