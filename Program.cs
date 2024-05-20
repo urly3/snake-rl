@@ -43,13 +43,11 @@ class Program
 
         Raylib.InitWindow(windowWidth, windowHeight, "snake-rl");
 
-        var game = new SnakeGame(db, sql, username, windowWidth, windowHeight);
+        var game = new SnakeGame(db, username, sql, windowWidth, windowHeight);
 
         while (!Raylib.WindowShouldClose())
         {
-            game.Input();
-            game.Update();
-            game.Render();
+            game.Play();
         }
 
         game.Deinit();
@@ -369,6 +367,7 @@ class SnakeGame
     string sqlInsert { get; set; }
     int windowWidth { get; set; }
     int windowHeight { get; set; }
+    int score = 0;
 
     public SnakeGame(SQLiteConnection db, string username, string sqlInsert, int windowWidth, int windowHeight)
     {
@@ -377,6 +376,15 @@ class SnakeGame
         this.sqlInsert = sqlInsert;
         this.windowWidth = windowWidth;
         this.windowHeight = windowHeight;
+    }
+
+    public int Play()
+    {
+        Input();
+        Update();
+        Render();
+
+        return score;
     }
 
     public void Deinit()
