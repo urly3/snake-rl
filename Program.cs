@@ -2,15 +2,13 @@
 using System.Data.SQLite;
 using RepoDb;
 
-namespace thegame;
-
 class Program
 {
-    static int windowWidth = 500;
-    static int windowHeight = 500;
-    static string sql = "insert into scores(score, username) values(@score, @username)";
-    static SQLiteConnection db = new("Data Source=scores.db");
-    static string? username = "";
+    public static int WindowWidth = 500;
+    public static int WindowHeight = 500;
+    public static string SqlInsert = "insert into scores(score, username) values(@score, @username)";
+    public static SQLiteConnection Db = new("Data Source=scores.db");
+    public static string? Username = "";
 
     static void Main(string[] args)
     {
@@ -30,20 +28,20 @@ class Program
         catch
         {
             SQLiteConnection.CreateFile("scores.db");
-            db.ExecuteNonQuery(sqlCreateTable);
+            Db.ExecuteNonQuery(sqlCreateTable);
         }
 
         Console.Write("enter a username: ");
 
-        username = Console.ReadLine();
-        if (username == null)
+        Username = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(Username))
         {
-            Environment.Exit(1);
+            throw new Exception("username cannot be empty");
         }
 
-        Raylib.InitWindow(windowWidth, windowHeight, "snake-rl");
+        Raylib.InitWindow(WindowWidth, WindowHeight, "snake-rl");
 
-        var game = new SnakeGame(db, username, sql, windowWidth, windowHeight);
+        var game = new SnakeGame();
 
         while (!Raylib.WindowShouldClose())
         {
@@ -362,20 +360,10 @@ class SnakeGame
     static bool scoreSaved = false;
     static Direction direction = Direction.Still;
     static Grid grid = new();
-    SQLiteConnection db { get; set; }
-    string username { get; set; }
-    string sqlInsert { get; set; }
-    int windowWidth { get; set; }
-    int windowHeight { get; set; }
     int score = 0;
 
-    public SnakeGame(SQLiteConnection db, string username, string sqlInsert, int windowWidth, int windowHeight)
+    public SnakeGame()
     {
-        this.db = db;
-        this.username = username;
-        this.sqlInsert = sqlInsert;
-        this.windowWidth = windowWidth;
-        this.windowHeight = windowHeight;
     }
 
     public int Play()
@@ -420,7 +408,6 @@ class SnakeGame
         if (deltaTime < Constants.spu)
         {
             Raylib.WaitTime(Constants.spf);
-
             return;
         }
 
@@ -445,18 +432,14 @@ class SnakeGame
         {
             if (!scoreSaved)
             {
-                _ = db.ExecuteNonQuery(sqlInsert, new { score = grid.Snake.Size, username = username });
+                _ = Program.Db.ExecuteNonQuery(Program.SqlInsert, new { score = grid.Snake.Size, username = Program.Username });
                 scoreSaved = true;
             }
+
             return;
         }
 
-        if (paused)
-        {
-            return;
-        }
-
-        if (won)
+        if (paused || won)
         {
             return;
         }
@@ -478,20 +461,12 @@ class SnakeGame
     {
         Raylib.BeginDrawing();
 
-        if (paused)
-        {
-
-        }
-
-        if (won)
-        {
-
-        }
+        if (paused || won) { }
 
         foreach (var tile in Grid.Tiles)
         {
-            Raylib.DrawTexture(Block.Textures[(int)tile.Type], tile.Position.X * (windowWidth / Grid.Width),
-                tile.Position.Y * (windowHeight / Grid.Height), Color.White);
+            Raylib.DrawTexture(Block.Textures[(int)tile.Type], tile.Position.X * (Program.WindowWidth / Grid.Width),
+                tile.Position.Y * (Program.WindowHeight / Grid.Height), Color.White);
         }
 
         if (!grid.Snake.Alive)
@@ -499,8 +474,8 @@ class SnakeGame
             Raylib.DrawText("you died. press 'r' to restart.", 20, 10, 30, Color.Maroon);
 
             int y = 100;
-            Raylib.DrawText("local high scores", (windowWidth / 2) - 140, y, 30, Color.Black);
-            using (var reader = db.ExecuteReader("select username,score from scores order by score desc limit 5;"))
+            Raylib.DrawText("local high scores", (Program.WindowWidth / 2) - 140, y, 30, Color.Black);
+            using (var reader = Program.Db.ExecuteReader("select username,score from scores order by score desc limit 5;"))
             {
                 var i = 0;
 
@@ -518,8 +493,8 @@ class SnakeGame
 
                     var username = reader.GetString(0);
                     var score = reader.GetInt32(1);
-                    Raylib.DrawText(username, (windowWidth / 2) - 140, y, 30, colour);
-                    Raylib.DrawText(score.ToString(), (windowWidth / 2) + 80, y, 30, colour);
+                    Raylib.DrawText(username, (Program.WindowWidth / 2) - 140, y, 30, colour);
+                    Raylib.DrawText(score.ToString(), (Program.WindowWidth / 2) + 80, y, 30, colour);
                 }
             }
         }
